@@ -1,0 +1,13 @@
+# Build runtime image.
+FROM openjdk:17-ea-alpine
+ENV UID=1000
+ENV GID=1000
+ENV UNAME=user
+RUN addgroup -g $GID $UNAME  && adduser --shell /sbin/nologin --disabled-password --uid $UID --ingroup $UNAME $UNAME
+#####
+COPY target/ /app/
+EXPOSE 8080
+WORKDIR /app
+USER ${UID}:${GID}
+# Starts java app with debugging server at port 8080.
+CMD ["java", "-jar", "hello-world-1.0.0.jar"]

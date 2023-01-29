@@ -1,0 +1,7 @@
+ignored:
+  - SC1010
+
+trustedRegistries:
+  - docker.io
+  - gcr.io
+  - us-central1-docker.pkg.dev

@@ -1,0 +1,12 @@
+schemaVersion: '2.0.0'
+metadataTest:
+  exposedPorts: ["8080"]
+  cmd: ["java", "-jar", "hello-world-1.0.0.jar"]
+  workdir: "/app"
+fileExistenceTests:
+- name: 'User'
+  path: '/home/user'
+  shouldExist: true
+  permissions: 'drwx------'
+  uid: 1000
+  gid: 1000

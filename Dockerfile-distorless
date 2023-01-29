@@ -1,0 +1,8 @@
+FROM gcr.io/distroless/java17-debian11
+# Copy the compiled files over.
+COPY target/ /app/
+EXPOSE 8080
+WORKDIR /app
+#USER ${UID}:${GID}
+# Starts java app with debugging server at port 5005.
+CMD ["hello-world-1.0.0.jar"]

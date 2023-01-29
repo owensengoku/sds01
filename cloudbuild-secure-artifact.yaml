@@ -1,0 +1,66 @@
+steps:
+# - name: gcr.io/cloud-builders/docker
+#   id: 'Linting Dockerfile for Static Analysis'
+#   entrypoint: bash
+#   args:
+#     - '-c'
+#     - |
+#       docker run --rm -v $(pwd):/root -i hadolint/hadolint hadolint -f json --config /root/policies/hadolint.yaml /root/Dockerfile > res.txt ; \
+#       if [[ $(cat res.txt | wc -c) -gt 2 ]] ; then echo 'Static Analysis failed' && cat res.txt && exit 1; else echo 'Linting passed'; fi
+- name: maven:3.8.7-eclipse-temurin-17-alpine
+  entrypoint: mvn
+  args: ['package','-Dmaven.test.skip=true']
+
+- name: gcr.io/cloud-builders/docker
+  id: 'Package a zero vulernability image'
+  args: ['build', '-t', '${_IMAGE_PATH}:latest', '.']
+- name: gcr.io/cloud-builders/docker
+  entrypoint: /bin/bash
+  args:
+  - -c
+  - |
+    docker push ${_IMAGE_PATH}:latest &&
+    docker image inspect ${_IMAGE_PATH}:latest --format '{{index .RepoDigests 0}}' > /workspace/image-digest.txt &&
+    cat /workspace/image-digest.txt
+- name: gcr.io/cloud-builders/docker
+  id: 'Package a vulerable image'
+  args: ['build', '-f', './Dockerfile-vulnerable', '-t', '${_IMAGE_PATH}:vulnerable', '.']
+- name: gcr.io/cloud-builders/docker
+  entrypoint: /bin/bash
+  args:
+  - -c
+  - |
+    docker push ${_IMAGE_PATH}:vulnerable
+- name: gcr.io/cloud-builders/docker
+  id: 'Package a distorless container image'
+  args: ['build', '-f', './Dockerfile-distorless', '-t', '${_IMAGE_PATH}:distorless', '.']
+- name: gcr.io/cloud-builders/docker
+  entrypoint: /bin/bash
+  args:
+  - -c
+  - |
+    docker push ${_IMAGE_PATH}:distorless
+# - id: 'container structure test'
+#   name: 'gcr.io/cloud-builders/docker'
+#   entrypoint: bash
+#   args:
+#     - '-c'
+#     - |
+#       curl -LO https://storage.googleapis.com/container-structure-test/latest/container-structure-test-linux-amd64 
+#       chmod +x container-structure-test-linux-amd64 
+#       mv container-structure-test-linux-amd64 /usr/local/bin/container-structure-test
+#       docker pull ${_IMAGE_PATH}:latest
+#       container-structure-test test -i ${_IMAGE_PATH}:latest -c $(pwd)/policies/container-structure-test.yaml  
+- name: "gcr.io/cloud-builders/gke-deploy"
+  args:
+  - run
+  - --filename=kubernetes-manifests
+  - --location=${_LOCATION}
+  - --cluster=${_CLUSTER}
+images: ["${_IMAGE_PATH}"]
+substitutions:
+  _IMAGE_PATH: "us-central1-docker.pkg.dev/shawnho-demo-2023/container-dev-repo/hello-world"
+  # _SEVERITY: CRITICAL
+  # _NEGLECT_CVE: CVE-2022-1471
+  _LOCATION: asia-east1
+  _CLUSTER: gke-cluster
